@@ -22,3 +22,17 @@ venv/
 build/
 dist/
 *.egg-info/
+
+# Local environment / secrets
+.env
+
+# Local databases
+*.db
+
+# Generated exports
+tmp_exports/
+
+# Uploaded/generated photo artifacts
+frontend/public/photos/*
+!frontend/public/photos/.gitkeep
+frontend/public/photos/processed/

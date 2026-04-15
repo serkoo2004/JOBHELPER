@@ -9,6 +9,7 @@ class ProfileModel(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True, index=True)
     full_name: str
     email: str
+    photo_url: Optional[str] = None
     phone: Optional[str] = None
     location: Optional[str] = None
     summary: Optional[str] = None
@@ -21,5 +22,8 @@ class ProfileModel(SQLModel, table=True):
     skills: Optional[str] = None
     languages: Optional[str] = None
     certifications: Optional[str] = None
+    experiences: Optional[str] = None
+    projects: Optional[str] = None
+    education: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

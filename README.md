@@ -25,25 +25,31 @@ Backend:
 py -3 -m pip install -r requirements.txt
 ```
 
-Tek bir komutla backend ve frontend’i aynı anda başlatmak için:
-
-```powershell
-cd "C:\Users\yilan\Desktop\YENİ proje"
-.\start.ps1
-```
-
-(Not: `.venv` kullanmak istemezseniz bu komut doğrudan sistem Python ortamına paketleri kurar.)
-
 # Veritabanı
 Uygulama varsayılan olarak lokal SQLite kullanır. Backend çalıştırıldığında proje kökünde `career_copilot.db` dosyası otomatik oluşturulur.
 
-Eğer isterseniz PostgreSQL kullanmak için `DATABASE_URL` ortam değişkenini ayarlayabilirsiniz. PostgreSQL gerekli değildir.
+PostgreSQL kullanmak isterseniz `DATABASE_URL` ortam değişkenini ayarlayabilirsiniz. Kod tarafı `postgresql://...` bağlantılarını otomatik olarak `psycopg` sürücüsüyle uyumlu hale getirir.
+
+Örnekler:
+
+```bash
+# Backend ve PostgreSQL aynı Ubuntu server üzerindeyse
+DATABASE_URL=postgresql://<user>:<password>@localhost:5432/career_copilot
+
+# Backend Docker içinde ve postgres servis adı `postgres` ise
+DATABASE_URL=postgresql://<user>:<password>@postgres:5432/career_copilot
+
+# Laptop üzerinden uzaktaki ev sunucusuna bağlanacaksanız
+DATABASE_URL=postgresql://<user>:<password>@<server-ip>:5432/career_copilot
+```
 
 AI sağlayıcıları ile gerçek üretim yapmak için aşağıdaki ortam değişkenlerinden birini kullanabilirsiniz:
 
 ```bash
 GOOGLE_API_KEY=<google-api-key>
+GOOGLE_MODEL=gemini-2.5-flash
 OPENAI_API_KEY=<openai-api-key>
+OPENAI_MODEL=gpt-4o-mini
 NEXT_PUBLIC_API_BASE_URL=/backend/api/v1
 ```
 
@@ -63,7 +69,7 @@ APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
 APPLE_REDIRECT_URI=https://yourdomain.com/auth/apple/callback
 ```
 
-Bu değerleri proje kökünde bir `.env` dosyası içine yazabilirsiniz.
+Bu değerleri proje kökünde bir `.env` dosyası içine yazabilirsiniz. Üretim ortamında gerçek anahtar ve veritabanı şifrelerini repoya commit etmeyin.
 
 Çalıştırmak için:
 
@@ -78,6 +84,14 @@ cd frontend
 npm install
 npm run dev
 ```
+
+Doğrudan AI üretiminden indirilebilir CV dosyası almak için Swagger üzerinden şu endpoint kullanılabilir:
+
+```text
+POST /api/v1/resumes/generate-file
+```
+
+Bu uç nokta, `ai/skills/cv_builder.md` promptunu kullanarak CV metnini üretir ve seçilen formata göre doğrudan `pdf` veya `docx` dosyası döndürür. AI sağlayıcısı bağlı değilse sistem geçici fallback içerik üretir.
 
 ## Geliştirme önerileri
 

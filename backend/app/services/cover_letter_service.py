@@ -12,21 +12,21 @@ class CoverLetterService:
         position = payload.position
         tone = payload.tone or "professional"
 
-        prompt = (
-            "Platform Context:\n"
-            "- Bu uygulama siradan metin ureten bir bot degil, premium kariyer danismani gibi davranir.\n"
-            "- On yazi role ve sirkete ozel olmali, genel kaliplara dusmemeli.\n"
-            "- Uydurma basari, uydurma sirket bilgisi veya asiri iddiali ifadeler kullanma.\n\n"
-            f"{AiSkillManager.get_skill_prompt('cover_letter_writer')}\n"
-            f"Gorev:\n"
-            f"Asagidaki bilgilerle profesyonel bir on yazi olustur.\n\n"
+        input_data = (
+            "Task: Cover letter oluştur.\n"
             f"Ad Soyad: {full_name}\n"
-            f"Sirket: {company}\n"
+            f"Şirket: {company}\n"
             f"Pozisyon: {position}\n"
             f"Ton: {tone}\n"
         )
         if payload.job_description:
-            prompt += f"Is Ilani Aciklamasi: {payload.job_description}\n"
+            input_data += f"İş İlanı Açıklaması: {payload.job_description}\n"
+        prompt = (
+            "PLATFORM RULES\n"
+            "- Bu uygulama premium kariyer danışmanı gibi davranır.\n"
+            "- Uydurma başarı, uydurma şirket bilgisi veya boş cümle kullanma.\n\n"
+            f"{AiSkillManager.render_primary_prompt('cover_letter_writer', input_data)}"
+        )
 
         if AiProvider.available_provider():
             try:

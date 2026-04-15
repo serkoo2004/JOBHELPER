@@ -26,17 +26,51 @@ class AiProvider:
 
     @staticmethod
     def _generate_google(prompt: str, model: str) -> str:
-        url = f"https://generativelanguage.googleapis.com/v1beta2/models/{model}:generateText"
-        params = {"key": settings.google_api_key}
-        payload = {
-            "prompt": {"text": prompt},
-            "temperature": 0.7,
-            "maxOutputTokens": 500,
+        normalized_model = AiProvider._normalize_google_model(model)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{normalized_model}:generateContent"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": settings.google_api_key or "",
         }
-        response = requests.post(url, params=params, json=payload, timeout=30)
+        payload = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": prompt}],
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": 1200,
+            },
+        }
+        response = requests.post(url, headers=headers, json=payload, timeout=45)
         response.raise_for_status()
         data = response.json()
-        return data.get("candidates", [{}])[0].get("output", "")
+        parts = (
+            data.get("candidates", [{}])[0]
+            .get("content", {})
+            .get("parts", [])
+        )
+        text_parts = [part.get("text", "") for part in parts if part.get("text")]
+        if text_parts:
+            return "\n".join(text_parts).strip()
+        raise RuntimeError(f"Google AI empty response: {json.dumps(data)[:500]}")
+
+    @staticmethod
+    def _normalize_google_model(model: str) -> str:
+        legacy_models = {
+            "text-bison-001",
+            "gemini-pro",
+            "gemini-1.0-pro",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash",
+        }
+        cleaned = (model or "").strip()
+        if not cleaned or cleaned in legacy_models:
+            return "gemini-2.5-flash"
+        return cleaned
 
     @staticmethod
     def _generate_openai(prompt: str, model: str) -> str:

@@ -1,0 +1,3 @@
+şimdi ben şunu istiyorum biz ai a verdiğimiz skills ler direk dosya üretmek için zaten şuanda sen html den alıp kendin üretmeye ççalışıyorsun ama busfer hata alıyor
+ben istiyorum ki oraya göndersin o skillsleri kullansın oraya göndersin ordan kıullanıp yapsın dosyayı orayı kullanmalı zaten hem de sistem de  sıkıntılar var onları çözelim front u üretmeye başlicaz
+şimdilik bu devamını yapıcaz

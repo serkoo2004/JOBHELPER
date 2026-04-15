@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(ROOT_DIR / ".env")
+load_dotenv(ROOT_DIR / ".env.example", override=False)
 
 
 def _get_bool(name: str, default: bool) -> bool:
@@ -23,6 +24,17 @@ def _get_list(name: str, default: list[str]) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _normalize_database_url(value: str | None) -> str | None:
+    if not value:
+        return None
+    normalized = value.strip()
+    if normalized.startswith("postgresql://"):
+        return normalized.replace("postgresql://", "postgresql+psycopg://", 1)
+    if normalized.startswith("postgres://"):
+        return normalized.replace("postgres://", "postgresql+psycopg://", 1)
+    return normalized
+
+
 @dataclass(slots=True)
 class Settings:
     project_name: str = field(default_factory=lambda: os.getenv("PROJECT_NAME", "Career Copilot"))
@@ -30,10 +42,10 @@ class Settings:
     api_version: str = field(default_factory=lambda: os.getenv("API_VERSION", "v1"))
     default_locale: str = field(default_factory=lambda: os.getenv("DEFAULT_LOCALE", "tr-TR"))
     allow_origins: list[str] = field(default_factory=lambda: _get_list("ALLOW_ORIGINS", ["*"]))
-    database_url: str | None = field(default_factory=lambda: os.getenv("DATABASE_URL"))
+    database_url: str | None = field(default_factory=lambda: _normalize_database_url(os.getenv("DATABASE_URL")))
 
     google_api_key: str | None = field(default_factory=lambda: os.getenv("GOOGLE_API_KEY"))
-    google_model: str = field(default_factory=lambda: os.getenv("GOOGLE_MODEL", "text-bison-001"))
+    google_model: str = field(default_factory=lambda: os.getenv("GOOGLE_MODEL", "gemini-2.5-flash"))
     openai_api_key: str | None = field(default_factory=lambda: os.getenv("OPENAI_API_KEY"))
     openai_model: str = field(default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
 

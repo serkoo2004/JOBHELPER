@@ -16,8 +16,15 @@ class AiSkillManager:
         content = cls.get_skill_content(skill_name)
         if not content:
             return ''
-
-        return cls._strip_frontmatter(content).splitlines()[0].strip() if cls._strip_frontmatter(content).splitlines() else ''
+        body = cls._strip_frontmatter(content)
+        for line in body.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if stripped.startswith("#") or stripped.startswith("-") or stripped.endswith(":"):
+                continue
+            return stripped
+        return ""
 
     @classmethod
     def get_skill_prompt(cls, skill_name: str) -> str:
@@ -27,7 +34,23 @@ class AiSkillManager:
         body = cls._strip_frontmatter(content).strip()
         if not body:
             return ""
-        return f"Skill Instructions - {skill_name}:\n{body}\n"
+        return body
+
+    @classmethod
+    def render_primary_prompt(cls, skill_name: str, inputs: str) -> str:
+        skill_prompt = cls.get_skill_prompt(skill_name)
+        if not skill_prompt:
+            return inputs.strip()
+        return (
+            f"PRIMARY SKILL PROMPT\n"
+            f"- Asagidaki skill bu gorevin ana talimatidir.\n"
+            f"- Cevabi bu skill kurallarina gore uret.\n"
+            f"- Kullanici verilerini skill icindeki amaca hizmet edecek sekilde isle.\n"
+            f"- Skill ile celisen serbest yorum ekleme.\n\n"
+            f"{skill_prompt.strip()}\n\n"
+            f"INPUT DATA\n"
+            f"{inputs.strip()}"
+        ).strip()
 
     @staticmethod
     def _strip_frontmatter(content: str) -> str:
