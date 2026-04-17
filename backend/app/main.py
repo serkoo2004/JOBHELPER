@@ -40,6 +40,8 @@ app = FastAPI(
     ],
 )
 
+cors_allow_credentials = settings.allow_credentials and "*" not in settings.allow_origins
+
 _rate_limit_store: dict[str, deque[float]] = defaultdict(deque)
 
 
@@ -50,7 +52,7 @@ def on_startup() -> None:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allow_origins,
-    allow_credentials=True,
+    allow_credentials=cors_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -103,3 +105,8 @@ app.include_router(api_router, prefix="/api/v1")
 @app.get("/")
 def read_root() -> dict[str, str]:
     return {"message": "Career Copilot backend is running."}
+
+
+@app.get("/health", tags=["system"], summary="Root health check")
+def root_health_check() -> dict[str, str]:
+    return {"status": "ok", "service": "Career Copilot API"}

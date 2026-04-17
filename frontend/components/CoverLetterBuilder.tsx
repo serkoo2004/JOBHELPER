@@ -4,6 +4,9 @@ import { FormEvent, useState } from 'react';
 
 import { apiFetch } from '../lib/api';
 import type { CoverLetterResponse } from '../lib/types';
+import Badge from './ui/Badge';
+import Button from './ui/Button';
+import SurfaceCard from './ui/SurfaceCard';
 
 const initialData = {
   full_name: '',
@@ -15,10 +18,13 @@ const initialData = {
 };
 
 const prompts = [
-  'Sirketin neden ilgini cektigini bir cumlede netlestir.',
-  'Role en yakin 2 guclu deneyimini sec.',
-  'CV tekrarina dusmeden katki acikla.',
+  'Şirketin neden ilgini çektiğini bir cümlede netleştir.',
+  'Role en yakın iki güçlü deneyimini seç.',
+  'CV tekrarına düşmeden katkını açıkla.',
 ];
+
+const fieldClass =
+  'mt-2 w-full rounded-[1.2rem] border border-[var(--border-medium)] bg-[color:var(--bg-primary)] px-4 py-3 text-[color:var(--text-primary)] outline-none transition focus:border-[var(--border-accent)] focus:bg-[color:var(--bg-secondary)]';
 
 export default function CoverLetterBuilder() {
   const [form, setForm] = useState(initialData);
@@ -33,7 +39,7 @@ export default function CoverLetterBuilder() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
-    setStatus('On yazi hazirlaniyor...');
+    setStatus('Ön yazı hazırlanıyor...');
 
     try {
       const payload = {
@@ -54,9 +60,9 @@ export default function CoverLetterBuilder() {
         body: payload,
       });
       setResult(data);
-      setStatus('On yazi hazir. Tonu daha kurumsal ya da daha cesur hale getirmek istersek buradan devam edebiliriz.');
+      setStatus('Ön yazı hazır. Tonu daha kurumsal ya da daha cesur hale getirmek istersek buradan devam edebiliriz.');
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Backend ile iletisim kurulamadi.');
+      setStatus(error instanceof Error ? error.message : 'Backend ile iletişim kurulamadı.');
     } finally {
       setLoading(false);
     }
@@ -64,93 +70,107 @@ export default function CoverLetterBuilder() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-      <div className="rounded-[2.3rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,20,33,0.95),rgba(9,13,24,0.98))] p-8 shadow-[0_35px_120px_rgba(0,0,0,0.35)]">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-accent/80">Letter Engine</p>
-            <h2 className="mt-3 text-3xl font-semibold text-white">Pozisyona ozel on yazi</h2>
+      <SurfaceCard tone="glass" className="relative overflow-hidden rounded-[2rem] p-8">
+        <div className="absolute inset-0 grid-overlay opacity-20" />
+        <div className="relative">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="eyebrow">
+                <span className="eyebrow-dot" />
+                Letter Engine
+              </p>
+              <h2 className="mt-4 text-3xl font-semibold text-[color:var(--text-primary)]">Pozisyona özel ön yazı</h2>
+            </div>
+            <Badge tone="accent">Tailored</Badge>
           </div>
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-[0.2em] text-slate-300">
-            Tailored
-          </span>
+
+          <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm text-[color:var(--text-secondary)]">
+                Ad Soyad
+                <input className={fieldClass} value={form.full_name} onChange={(event) => handleChange('full_name', event.target.value)} required />
+              </label>
+              <label className="block text-sm text-[color:var(--text-secondary)]">
+                Email
+                <input className={fieldClass} type="email" value={form.email} onChange={(event) => handleChange('email', event.target.value)} required />
+              </label>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm text-[color:var(--text-secondary)]">
+                Şirket Adı
+                <input className={fieldClass} value={form.company_name} onChange={(event) => handleChange('company_name', event.target.value)} required />
+              </label>
+              <label className="block text-sm text-[color:var(--text-secondary)]">
+                Pozisyon
+                <input className={fieldClass} value={form.position} onChange={(event) => handleChange('position', event.target.value)} required />
+              </label>
+            </div>
+
+            <label className="block text-sm text-[color:var(--text-secondary)]">
+              İş İlanı Açıklaması
+              <textarea className={fieldClass} rows={7} value={form.job_description} onChange={(event) => handleChange('job_description', event.target.value)} />
+            </label>
+
+            <label className="block text-sm text-[color:var(--text-secondary)]">
+              Ton
+              <select className={fieldClass} value={form.tone} onChange={(event) => handleChange('tone', event.target.value)}>
+                <option value="professional">Profesyonel</option>
+                <option value="warm">Sıcak</option>
+              </select>
+            </label>
+
+            <Button className="w-full" size="lg" type="submit" disabled={loading}>
+              {loading ? 'Oluşturuluyor...' : 'Ön Yazı Üret'}
+            </Button>
+          </form>
         </div>
-
-        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-sm text-gray-300">
-              Ad Soyad
-              <input className="mt-2 w-full rounded-3xl border border-white/10 bg-surface px-4 py-3 text-white outline-none focus:border-accent" value={form.full_name} onChange={(event) => handleChange('full_name', event.target.value)} required />
-            </label>
-            <label className="block text-sm text-gray-300">
-              Email
-              <input className="mt-2 w-full rounded-3xl border border-white/10 bg-surface px-4 py-3 text-white outline-none focus:border-accent" type="email" value={form.email} onChange={(event) => handleChange('email', event.target.value)} required />
-            </label>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-sm text-gray-300">
-              Sirket Adi
-              <input className="mt-2 w-full rounded-3xl border border-white/10 bg-surface px-4 py-3 text-white outline-none focus:border-accent" value={form.company_name} onChange={(event) => handleChange('company_name', event.target.value)} required />
-            </label>
-            <label className="block text-sm text-gray-300">
-              Pozisyon
-              <input className="mt-2 w-full rounded-3xl border border-white/10 bg-surface px-4 py-3 text-white outline-none focus:border-accent" value={form.position} onChange={(event) => handleChange('position', event.target.value)} required />
-            </label>
-          </div>
-
-          <label className="block text-sm text-gray-300">
-            Is Ilani Aciklamasi
-            <textarea className="mt-2 w-full rounded-3xl border border-white/10 bg-surface px-4 py-3 text-white outline-none focus:border-accent" rows={7} value={form.job_description} onChange={(event) => handleChange('job_description', event.target.value)} />
-          </label>
-
-          <label className="block text-sm text-gray-300">
-            Ton
-            <select className="mt-2 w-full rounded-3xl border border-white/10 bg-surface px-4 py-3 text-white outline-none focus:border-accent" value={form.tone} onChange={(event) => handleChange('tone', event.target.value)}>
-              <option value="professional">Profesyonel</option>
-              <option value="warm">Sicak</option>
-            </select>
-          </label>
-
-          <button className="w-full rounded-3xl bg-accent px-6 py-3 text-base font-semibold text-surface transition hover:bg-[#9ff3d2]" type="submit" disabled={loading}>
-            {loading ? 'Olusturuluyor...' : 'On Yazi Uret'}
-          </button>
-        </form>
-      </div>
+      </SurfaceCard>
 
       <div className="space-y-6">
-        <div className="rounded-[2.3rem] border border-white/10 bg-[linear-gradient(180deg,rgba(13,18,31,0.98),rgba(8,12,21,0.98))] p-6">
-          <p className="text-xs uppercase tracking-[0.28em] text-accent/80">Writing Strategy</p>
+        <SurfaceCard className="rounded-[2rem] p-6">
+          <p className="eyebrow">
+            <span className="eyebrow-dot" />
+            Writing Strategy
+          </p>
           <div className="mt-5 space-y-3">
             {prompts.map((item) => (
-              <div key={item} className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-sm leading-7 text-slate-200">
+              <div key={item} className="rounded-[1.35rem] border border-[var(--border-soft)] bg-[color:var(--bg-secondary)] p-4 text-sm leading-7 text-[color:var(--text-secondary)]">
                 {item}
               </div>
             ))}
           </div>
-        </div>
+        </SurfaceCard>
 
-        <div className="rounded-[2.3rem] border border-white/10 bg-[linear-gradient(180deg,rgba(13,18,31,0.98),rgba(8,12,21,0.98))] p-6 shadow-[0_35px_120px_rgba(0,0,0,0.32)]">
-          <p className="text-xs uppercase tracking-[0.28em] text-accent/80">Output</p>
-          <p className="mt-3 text-sm leading-7 text-slate-300">{status || 'Sistem role, sirkete ve tona gore kullanima hazir bir taslak uretecek.'}</p>
+        <SurfaceCard className="rounded-[2rem] p-6">
+          <p className="eyebrow">
+            <span className="eyebrow-dot" />
+            Output
+          </p>
+          <p className="mt-4 text-sm leading-7 text-[color:var(--text-secondary)]">
+            {status || 'Sistem role, şirkete ve tona göre kullanıma hazır bir taslak üretecek.'}
+          </p>
           {result ? (
             <div className="mt-5 space-y-4">
-              <h3 className="text-2xl font-semibold text-white">{result.title}</h3>
-              <p className="text-sm text-slate-300">{result.summary}</p>
+              <h3 className="text-2xl font-semibold text-[color:var(--text-primary)]">{result.title}</h3>
+              <p className="text-sm text-[color:var(--text-secondary)]">{result.summary}</p>
               <div className="flex flex-wrap gap-2">
                 {result.recommendations.map((item) => (
-                  <span key={item} className="rounded-full border border-accent/20 bg-accent/10 px-3 py-1 text-xs text-accent">
+                  <Badge key={item} tone="accent">
                     {item}
-                  </span>
+                  </Badge>
                 ))}
               </div>
-              <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded-[1.7rem] border border-white/10 bg-surface/90 p-5 text-sm leading-7 text-slate-100">{result.content}</pre>
+              <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded-[1.5rem] border border-[var(--border-soft)] bg-[color:var(--bg-secondary)] p-5 text-sm leading-7 text-[color:var(--text-primary)]">
+                {result.content}
+              </pre>
             </div>
           ) : (
-            <div className="mt-5 rounded-[1.7rem] border border-dashed border-white/10 bg-white/5 p-5 text-sm leading-7 text-slate-300">
-              Burada role ozel acilis, neden uyumlu oldugun ve kapanis dili tek bir premium metinde toplanacak.
+            <div className="mt-5 rounded-[1.5rem] border border-dashed border-[var(--border-soft)] bg-[color:var(--bg-secondary)] p-5 text-sm leading-7 text-[color:var(--text-secondary)]">
+              Burada role özel açılış, neden uyumlu olduğun ve kapanış dili tek bir premium metinde toplanacak.
             </div>
           )}
-        </div>
+        </SurfaceCard>
       </div>
     </div>
   );

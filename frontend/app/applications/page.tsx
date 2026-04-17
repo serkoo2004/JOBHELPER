@@ -2,15 +2,18 @@ import ApplicationTracker from '../../components/ApplicationTracker';
 import PageShell from '../../components/PageShell';
 
 const aside = (
-  <div className="rounded-[2.2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(13,18,31,0.98),rgba(8,12,21,0.98))] p-6">
-    <p className="text-xs uppercase tracking-[0.28em] text-accent/80">Ops View</p>
+  <div className="soft-panel rounded-[2rem] p-6">
+    <p className="eyebrow">
+      <span className="eyebrow-dot" />
+      Ops View
+    </p>
     <div className="mt-5 space-y-3">
       {[
         'Basvuru surecini da tek urun deneyiminin parcasi haline getirir.',
         'Sirket, rol, kaynak ve notlar bir arada tutulur.',
         'Mulakat ve teklif asamasi gibi sinyaller daha gorunur hale gelir.',
       ].map((item) => (
-        <div key={item} className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-sm leading-7 text-slate-200">
+        <div key={item} className="rounded-[1.35rem] border border-[var(--border-soft)] bg-[color:var(--bg-secondary)] p-4 text-sm leading-7 text-[color:var(--text-secondary)]">
           {item}
         </div>
       ))}

@@ -42,6 +42,7 @@ class Settings:
     api_version: str = field(default_factory=lambda: os.getenv("API_VERSION", "v1"))
     default_locale: str = field(default_factory=lambda: os.getenv("DEFAULT_LOCALE", "tr-TR"))
     allow_origins: list[str] = field(default_factory=lambda: _get_list("ALLOW_ORIGINS", ["*"]))
+    allow_credentials: bool = field(default_factory=lambda: _get_bool("ALLOW_CREDENTIALS", False))
     database_url: str | None = field(default_factory=lambda: _normalize_database_url(os.getenv("DATABASE_URL")))
     rate_limit_enabled: bool = field(default_factory=lambda: _get_bool("RATE_LIMIT_ENABLED", True))
     rate_limit_max_requests: int = field(default_factory=lambda: int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "120")))

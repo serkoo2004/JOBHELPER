@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 
 import TopNav from './TopNav';
+import SurfaceCard from './ui/SurfaceCard';
+import Badge from './ui/Badge';
 
 type PageShellProps = {
   eyebrow: string;
@@ -12,19 +14,19 @@ type PageShellProps = {
 
 export default function PageShell({ eyebrow, title, description, children, aside }: PageShellProps) {
   return (
-    <main className="min-h-screen bg-surface text-white">
+    <main className="app-shell min-h-screen text-[color:var(--text-primary)]">
       <TopNav />
-      <section className="mx-auto max-w-7xl px-6 pb-16 pt-10 md:px-10 lg:px-8">
+      <section className="section-container pb-16 pt-10">
         <div className="grid gap-8 xl:grid-cols-[0.82fr_1.18fr]">
           <div className="space-y-6">
-            <div className="glass-panel relative overflow-hidden rounded-[2.4rem] p-7">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(159,243,210,0.16),transparent_24%),radial-gradient(circle_at_80%_0%,rgba(127,140,255,0.14),transparent_24%)]" />
+            <SurfaceCard tone="glass" className="hero-gradient relative overflow-hidden rounded-[2rem] p-7">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(6,182,212,0.12),transparent_24%),radial-gradient(circle_at_80%_0%,rgba(37,99,235,0.14),transparent_24%)]" />
               <div className="relative">
-                <p className="text-xs uppercase tracking-[0.34em] text-accent/80">{eyebrow}</p>
-                <h1 className="mt-5 text-4xl font-semibold leading-tight md:text-5xl">{title}</h1>
-                <p className="mt-5 max-w-xl text-sm leading-8 text-slate-300 md:text-base">{description}</p>
+                <Badge tone="accent">{eyebrow}</Badge>
+                <h1 className="mt-5 text-[clamp(2.5rem,5vw,3.6rem)] font-semibold leading-tight">{title}</h1>
+                <p className="mt-5 max-w-xl text-sm leading-8 text-[color:var(--text-secondary)] md:text-base">{description}</p>
               </div>
-            </div>
+            </SurfaceCard>
             {aside}
           </div>
 

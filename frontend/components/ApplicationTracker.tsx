@@ -4,6 +4,9 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { apiFetch } from '../lib/api';
 import type { JobApplication } from '../lib/types';
+import Badge from './ui/Badge';
+import Button from './ui/Button';
+import SurfaceCard from './ui/SurfaceCard';
 
 const initialApplication = {
   company_name: '',
@@ -16,10 +19,13 @@ const initialApplication = {
 
 const statusConfig: Record<string, string> = {
   pending: 'Beklemede',
-  interview: 'Mulakat',
+  interview: 'Mülakat',
   offer: 'Teklif',
   rejected: 'Red',
 };
+
+const fieldClass =
+  'mt-2 w-full rounded-[1.2rem] border border-[var(--border-medium)] bg-[color:var(--bg-primary)] px-4 py-3 text-[color:var(--text-primary)] outline-none transition focus:border-[var(--border-accent)] focus:bg-[color:var(--bg-secondary)]';
 
 export default function ApplicationTracker() {
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -32,7 +38,7 @@ export default function ApplicationTracker() {
       const data = await apiFetch<JobApplication[]>('/applications');
       return data || [];
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Basvurular yuklenemedi.');
+      setStatus(error instanceof Error ? error.message : 'Başvurular yüklenemedi.');
       return [];
     }
   };
@@ -68,19 +74,19 @@ export default function ApplicationTracker() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
-    setStatus('Basvuru kaydediliyor...');
+    setStatus('Başvuru kaydediliyor...');
 
     try {
       await apiFetch<JobApplication>('/applications', {
         method: 'POST',
         body: form,
       });
-      setStatus('Basvuru kaydedildi ve panel guncellendi.');
+      setStatus('Başvuru kaydedildi ve panel güncellendi.');
       setForm(initialApplication);
       const nextApplications = await fetchApplications();
       setApplications(nextApplications);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Basvuru kaydedilemedi.');
+      setStatus(error instanceof Error ? error.message : 'Başvuru kaydedilemedi.');
     } finally {
       setLoading(false);
     }
@@ -90,111 +96,129 @@ export default function ApplicationTracker() {
     <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-[1.9rem] border border-white/10 bg-[linear-gradient(180deg,rgba(13,18,31,0.98),rgba(8,12,21,0.98))] p-5">
-            <p className="text-xs uppercase tracking-[0.24em] text-accent/80">Toplam</p>
-            <p className="mt-3 text-3xl font-semibold text-white">{metrics.total}</p>
-          </div>
-          <div className="rounded-[1.9rem] border border-white/10 bg-[linear-gradient(180deg,rgba(13,18,31,0.98),rgba(8,12,21,0.98))] p-5">
-            <p className="text-xs uppercase tracking-[0.24em] text-accent/80">Mulakat</p>
-            <p className="mt-3 text-3xl font-semibold text-white">{metrics.interviews}</p>
-          </div>
-          <div className="rounded-[1.9rem] border border-white/10 bg-[linear-gradient(180deg,rgba(13,18,31,0.98),rgba(8,12,21,0.98))] p-5">
-            <p className="text-xs uppercase tracking-[0.24em] text-accent/80">Teklif</p>
-            <p className="mt-3 text-3xl font-semibold text-white">{metrics.offers}</p>
-          </div>
+          <SurfaceCard className="rounded-[1.5rem] p-5">
+            <p className="eyebrow">
+              <span className="eyebrow-dot" />
+              Toplam
+            </p>
+            <p className="mt-4 text-3xl font-semibold text-[color:var(--text-primary)]">{metrics.total}</p>
+          </SurfaceCard>
+          <SurfaceCard className="rounded-[1.5rem] p-5">
+            <p className="eyebrow">
+              <span className="eyebrow-dot" />
+              Mülakat
+            </p>
+            <p className="mt-4 text-3xl font-semibold text-[color:var(--text-primary)]">{metrics.interviews}</p>
+          </SurfaceCard>
+          <SurfaceCard className="rounded-[1.5rem] p-5">
+            <p className="eyebrow">
+              <span className="eyebrow-dot" />
+              Teklif
+            </p>
+            <p className="mt-4 text-3xl font-semibold text-[color:var(--text-primary)]">{metrics.offers}</p>
+          </SurfaceCard>
         </div>
 
-        <div className="rounded-[2.3rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,20,33,0.95),rgba(9,13,24,0.98))] p-8 shadow-[0_35px_120px_rgba(0,0,0,0.35)]">
-          <p className="text-xs uppercase tracking-[0.28em] text-accent/80">Application Intake</p>
-          <h2 className="mt-3 text-3xl font-semibold">Yeni basvuru ekle</h2>
+        <SurfaceCard tone="glass" className="relative overflow-hidden rounded-[2rem] p-8">
+          <div className="absolute inset-0 grid-overlay opacity-20" />
+          <div className="relative">
+            <p className="eyebrow">
+              <span className="eyebrow-dot" />
+              Application Intake
+            </p>
+            <h2 className="mt-4 text-3xl font-semibold text-[color:var(--text-primary)]">Yeni başvuru ekle</h2>
 
-          <form className="mt-8 grid gap-4" onSubmit={handleSubmit}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="block text-sm text-gray-300">
-                Sirket
-                <input className="mt-2 w-full rounded-3xl border border-white/10 bg-surface px-4 py-3 text-white outline-none focus:border-accent" value={form.company_name} onChange={(event) => handleChange('company_name', event.target.value)} required />
+            <form className="mt-8 grid gap-4" onSubmit={handleSubmit}>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block text-sm text-[color:var(--text-secondary)]">
+                  Şirket
+                  <input className={fieldClass} value={form.company_name} onChange={(event) => handleChange('company_name', event.target.value)} required />
+                </label>
+                <label className="block text-sm text-[color:var(--text-secondary)]">
+                  Pozisyon
+                  <input className={fieldClass} value={form.role_name} onChange={(event) => handleChange('role_name', event.target.value)} required />
+                </label>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block text-sm text-[color:var(--text-secondary)]">
+                  Kaynak
+                  <input className={fieldClass} value={form.source} onChange={(event) => handleChange('source', event.target.value)} />
+                </label>
+                <label className="block text-sm text-[color:var(--text-secondary)]">
+                  Durum
+                  <select className={fieldClass} value={form.status} onChange={(event) => handleChange('status', event.target.value)}>
+                    <option value="pending">Beklemede</option>
+                    <option value="interview">Mülakat</option>
+                    <option value="offer">Teklif</option>
+                    <option value="rejected">Red</option>
+                  </select>
+                </label>
+              </div>
+              <label className="block text-sm text-[color:var(--text-secondary)]">
+                İlan Linki
+                <input className={fieldClass} value={form.job_url} onChange={(event) => handleChange('job_url', event.target.value)} />
               </label>
-              <label className="block text-sm text-gray-300">
-                Pozisyon
-                <input className="mt-2 w-full rounded-3xl border border-white/10 bg-surface px-4 py-3 text-white outline-none focus:border-accent" value={form.role_name} onChange={(event) => handleChange('role_name', event.target.value)} required />
+              <label className="block text-sm text-[color:var(--text-secondary)]">
+                Notlar
+                <textarea className={fieldClass} rows={4} value={form.notes} onChange={(event) => handleChange('notes', event.target.value)} />
               </label>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="block text-sm text-gray-300">
-                Kaynak
-                <input className="mt-2 w-full rounded-3xl border border-white/10 bg-surface px-4 py-3 text-white outline-none focus:border-accent" value={form.source} onChange={(event) => handleChange('source', event.target.value)} />
-              </label>
-              <label className="block text-sm text-gray-300">
-                Durum
-                <select className="mt-2 w-full rounded-3xl border border-white/10 bg-surface px-4 py-3 text-white outline-none focus:border-accent" value={form.status} onChange={(event) => handleChange('status', event.target.value)}>
-                  <option value="pending">Beklemede</option>
-                  <option value="interview">Mulakat</option>
-                  <option value="offer">Teklif</option>
-                  <option value="rejected">Red</option>
-                </select>
-              </label>
-            </div>
-            <label className="block text-sm text-gray-300">
-              Ilan Linki
-              <input className="mt-2 w-full rounded-3xl border border-white/10 bg-surface px-4 py-3 text-white outline-none focus:border-accent" value={form.job_url} onChange={(event) => handleChange('job_url', event.target.value)} />
-            </label>
-            <label className="block text-sm text-gray-300">
-              Notlar
-              <textarea className="mt-2 w-full rounded-3xl border border-white/10 bg-surface px-4 py-3 text-white outline-none focus:border-accent" rows={4} value={form.notes} onChange={(event) => handleChange('notes', event.target.value)} />
-            </label>
-            <button className="w-full rounded-3xl bg-accent px-6 py-3 text-base font-semibold text-surface transition hover:bg-[#9ff3d2]" type="submit" disabled={loading}>
-              {loading ? 'Kaydediliyor...' : 'Basvuru Ekle'}
-            </button>
-          </form>
+              <Button className="w-full" size="lg" type="submit" disabled={loading}>
+                {loading ? 'Kaydediliyor...' : 'Başvuru Ekle'}
+              </Button>
+            </form>
 
-          <div className="mt-5 text-sm text-slate-300">{status || 'Yeni bir basvuru ekleyip sureci panelden takip edebilirsin.'}</div>
-        </div>
+            <div className="mt-5 text-sm text-[color:var(--text-secondary)]">
+              {status || 'Yeni bir başvuru ekleyip süreci panelden takip edebilirsin.'}
+            </div>
+          </div>
+        </SurfaceCard>
       </div>
 
-      <div className="rounded-[2.3rem] border border-white/10 bg-[linear-gradient(180deg,rgba(13,18,31,0.98),rgba(8,12,21,0.98))] p-6 shadow-[0_35px_120px_rgba(0,0,0,0.32)]">
+      <SurfaceCard className="rounded-[2rem] p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-accent/80">Pipeline</p>
-            <h3 className="mt-3 text-2xl font-semibold">Kayitli basvurular</h3>
+            <p className="eyebrow">
+              <span className="eyebrow-dot" />
+              Pipeline
+            </p>
+            <h3 className="mt-4 text-2xl font-semibold text-[color:var(--text-primary)]">Kayıtlı başvurular</h3>
           </div>
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs uppercase tracking-[0.2em] text-slate-300">
-            Live
-          </span>
+          <Badge tone="accent">Live</Badge>
         </div>
 
         <div className="mt-6 space-y-4">
           {applications.length === 0 ? (
-            <div className="rounded-[1.8rem] border border-dashed border-white/10 bg-white/5 p-5 text-sm leading-7 text-slate-300">
-              Henuz basvuru yok. Ilk kayit eklendiginde burada durum kartlari gorunecek.
+            <div className="rounded-[1.5rem] border border-dashed border-[var(--border-soft)] bg-[color:var(--bg-secondary)] p-5 text-sm leading-7 text-[color:var(--text-secondary)]">
+              Henüz başvuru yok. İlk kayıt eklendiğinde burada durum kartları görünecek.
             </div>
           ) : (
             applications.map((application) => (
-              <div key={application.application_id} className="rounded-[1.8rem] border border-white/10 bg-white/5 p-5">
+              <div key={application.application_id} className="rounded-[1.5rem] border border-[var(--border-soft)] bg-[color:var(--bg-secondary)] p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <p className="text-xl font-semibold text-white">{application.company_name}</p>
-                    <p className="mt-1 text-sm text-slate-400">{application.role_name}</p>
+                    <p className="text-xl font-semibold text-[color:var(--text-primary)]">{application.company_name}</p>
+                    <p className="mt-1 text-sm text-[color:var(--text-muted)]">{application.role_name}</p>
                   </div>
-                  <span className="rounded-full border border-accent/20 bg-accent/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+                  <Badge tone={application.status === 'offer' ? 'success' : application.status === 'rejected' ? 'warning' : 'accent'}>
                     {statusConfig[application.status] || application.status}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-[1.3rem] bg-[#0c1220] p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Kaynak</p>
-                    <p className="mt-2 text-sm text-slate-200">{application.source || 'Belirtilmedi'}</p>
+                  <div className="rounded-[1.2rem] border border-[var(--border-soft)] bg-[color:var(--bg-primary)] p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Kaynak</p>
+                    <p className="mt-2 text-sm text-[color:var(--text-secondary)]">{application.source || 'Belirtilmedi'}</p>
                   </div>
-                  <div className="rounded-[1.3rem] bg-[#0c1220] p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Link</p>
-                    <p className="mt-2 truncate text-sm text-slate-200">{application.job_url || 'Yok'}</p>
+                  <div className="rounded-[1.2rem] border border-[var(--border-soft)] bg-[color:var(--bg-primary)] p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--text-muted)]">Link</p>
+                    <p className="mt-2 truncate text-sm text-[color:var(--text-secondary)]">{application.job_url || 'Yok'}</p>
                   </div>
                 </div>
-                {application.notes ? <p className="mt-4 text-sm leading-7 text-slate-300">Not: {application.notes}</p> : null}
+                {application.notes ? <p className="mt-4 text-sm leading-7 text-[color:var(--text-secondary)]">Not: {application.notes}</p> : null}
               </div>
             ))
           )}
         </div>
-      </div>
+      </SurfaceCard>
     </div>
   );
 }

@@ -8,6 +8,9 @@ import type {
   ResumeResponse,
   ResumeTemplateOption,
 } from '../lib/types';
+import Badge from './ui/Badge';
+import Button from './ui/Button';
+import SurfaceCard from './ui/SurfaceCard';
 
 type BuildMode = 'auto' | 'upload';
 
@@ -48,6 +51,9 @@ export default function ResumeBuilder() {
     () => templates.find((item) => item.key === template),
     [template, templates],
   );
+
+  const fieldClass =
+    'w-full rounded-[1.2rem] border border-[var(--border-medium)] bg-[color:var(--bg-primary)] px-4 py-3 text-[color:var(--text-primary)] outline-none transition focus:border-[var(--border-accent)] focus:bg-[color:var(--bg-secondary)]';
 
   const loadTemplates = async () => {
     setLoadingTemplates(true);
@@ -124,40 +130,38 @@ export default function ResumeBuilder() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[0.88fr_1.12fr]">
-      <div className="glass-panel relative overflow-hidden rounded-[2rem] p-6">
+      <SurfaceCard tone="glass" className="relative overflow-hidden rounded-[2rem] p-6">
         <div className="absolute inset-0 grid-overlay opacity-20" />
         <div className="relative">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full border border-cyan/30 bg-cyan/10 px-3 py-2 text-[11px] uppercase tracking-[0.3em] text-cyan">
+            <Badge tone="accent" className="tracking-[0.3em]">
               Backend-Aware Studio
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] uppercase tracking-[0.26em] text-slate-300">
-              {loadingTemplates ? 'Şablonlar...' : `${templates.length} template aktif`}
-            </span>
+            </Badge>
+            <Badge>{loadingTemplates ? 'Şablonlar...' : `${templates.length} template aktif`}</Badge>
           </div>
 
-          <h2 className="mt-6 text-3xl font-semibold leading-tight text-white md:text-4xl">
+          <h2 className="mt-6 text-3xl font-semibold leading-tight text-[color:var(--text-primary)] md:text-4xl">
             Form doldurtan değil,
             <span className="block text-cyan"> danışman gibi çalışan </span>
             CV studio akışı
           </h2>
 
-          <p className="mt-4 max-w-xl text-sm leading-8 text-slate-300">
+          <p className="mt-4 max-w-xl text-sm leading-8 text-[color:var(--text-secondary)]">
             Bu panel artık backend’in gerçek gücüne göre çalışıyor: kayıtlı profil, auto draft, upload analyze,
             AI uyarıları, template kararı ve foto profesyonelleştirme aynı akışta düşünülüyor.
           </p>
 
-          <div className="mt-8 inline-flex rounded-full border border-white/10 bg-white/5 p-1 text-sm">
+          <div className="mt-8 inline-flex rounded-full border border-[var(--border-soft)] bg-[color:var(--bg-primary)] p-1 text-sm">
             <button
               type="button"
-              className={`rounded-full px-4 py-2 transition ${mode === 'auto' ? 'bg-white text-slate-950' : 'text-slate-300'}`}
+              className={`rounded-full px-4 py-2 transition ${mode === 'auto' ? 'bg-[color:var(--text-primary)] text-[color:var(--bg-app)]' : 'text-[color:var(--text-secondary)]'}`}
               onClick={() => setMode('auto')}
             >
               Auto Draft
             </button>
             <button
               type="button"
-              className={`rounded-full px-4 py-2 transition ${mode === 'upload' ? 'bg-white text-slate-950' : 'text-slate-300'}`}
+              className={`rounded-full px-4 py-2 transition ${mode === 'upload' ? 'bg-[color:var(--text-primary)] text-[color:var(--bg-app)]' : 'text-[color:var(--text-secondary)]'}`}
               onClick={() => setMode('upload')}
             >
               Upload Analyze
@@ -168,9 +172,9 @@ export default function ResumeBuilder() {
             <form className="mt-6 space-y-4" onSubmit={handleAutoDraft}>
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-2">
-                  <span className="text-sm font-medium text-slate-200">Profile ID</span>
+                  <span className="text-sm font-medium text-[color:var(--text-secondary)]">Profile ID</span>
                   <input
-                    className="w-full rounded-[1.2rem] border border-white/10 bg-[#0b1424] px-4 py-3 text-white outline-none transition focus:border-cyan"
+                    className={fieldClass}
                     value={profileId}
                     onChange={(event) => setProfileId(event.target.value)}
                     placeholder="e2f760f427b74f3c8d5f5073088fcd4a"
@@ -178,9 +182,9 @@ export default function ResumeBuilder() {
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className="text-sm font-medium text-slate-200">Target Role</span>
+                  <span className="text-sm font-medium text-[color:var(--text-secondary)]">Target Role</span>
                   <input
-                    className="w-full rounded-[1.2rem] border border-white/10 bg-[#0b1424] px-4 py-3 text-white outline-none transition focus:border-cyan"
+                    className={fieldClass}
                     value={targetRole}
                     onChange={(event) => setTargetRole(event.target.value)}
                     placeholder="Senior Full Stack Developer"
@@ -190,9 +194,9 @@ export default function ResumeBuilder() {
 
               <div className="grid gap-4 md:grid-cols-[1fr_auto]">
                 <label className="space-y-2">
-                  <span className="text-sm font-medium text-slate-200">Template Strategy</span>
+                  <span className="text-sm font-medium text-[color:var(--text-secondary)]">Template Strategy</span>
                   <select
-                    className="w-full rounded-[1.2rem] border border-white/10 bg-[#0b1424] px-4 py-3 text-white outline-none transition focus:border-cyan"
+                    className={fieldClass}
                     value={template}
                     onChange={(event) => setTemplate(event.target.value)}
                   >
@@ -203,28 +207,29 @@ export default function ResumeBuilder() {
                     ))}
                   </select>
                 </label>
-                <button
+                <Button
                   type="button"
                   onClick={loadTemplates}
-                  className="self-end rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/10"
+                  variant="secondary"
+                  className="self-end rounded-[1.2rem]"
                 >
                   Şablonları Yenile
-                </button>
+                </Button>
               </div>
 
               <label className="space-y-2">
-                <span className="text-sm font-medium text-slate-200">CV Goal</span>
+                <span className="text-sm font-medium text-[color:var(--text-secondary)]">CV Goal</span>
                 <input
-                  className="w-full rounded-[1.2rem] border border-white/10 bg-[#0b1424] px-4 py-3 text-white outline-none transition focus:border-cyan"
+                  className={fieldClass}
                   value={cvGoal}
                   onChange={(event) => setCvGoal(event.target.value)}
                 />
               </label>
 
               <label className="space-y-2">
-                <span className="text-sm font-medium text-slate-200">Visual Preferences</span>
+                <span className="text-sm font-medium text-[color:var(--text-secondary)]">Visual Preferences</span>
                 <textarea
-                  className="w-full rounded-[1.4rem] border border-white/10 bg-[#0b1424] px-4 py-3 text-white outline-none transition focus:border-cyan"
+                  className={`${fieldClass} rounded-[1.4rem]`}
                   rows={3}
                   value={visualPreferences}
                   onChange={(event) => setVisualPreferences(event.target.value)}
@@ -232,28 +237,24 @@ export default function ResumeBuilder() {
               </label>
 
               <label className="space-y-2">
-                <span className="text-sm font-medium text-slate-200">Optimization Target</span>
+                <span className="text-sm font-medium text-[color:var(--text-secondary)]">Optimization Target</span>
                 <input
-                  className="w-full rounded-[1.2rem] border border-white/10 bg-[#0b1424] px-4 py-3 text-white outline-none transition focus:border-cyan"
+                  className={fieldClass}
                   value={optimizationTarget}
                   onChange={(event) => setOptimizationTarget(event.target.value)}
                 />
               </label>
 
-              <button
-                className="w-full rounded-[1.5rem] bg-[linear-gradient(135deg,#60a5fa,#22d3ee)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-slate-950 transition hover:opacity-90"
-                type="submit"
-                disabled={loading}
-              >
+              <Button className="w-full" size="lg" type="submit" disabled={loading}>
                 {loading ? 'Draft hazırlanıyor...' : 'Generate Auto Draft'}
-              </button>
+              </Button>
             </form>
           ) : (
             <form className="mt-6 space-y-4" onSubmit={handleUploadAnalyze}>
               <label className="space-y-2">
-                <span className="text-sm font-medium text-slate-200">Upload CV</span>
+                <span className="text-sm font-medium text-[color:var(--text-secondary)]">Upload CV</span>
                 <input
-                  className="w-full rounded-[1.2rem] border border-dashed border-white/20 bg-[#0b1424] px-4 py-3 text-sm text-slate-300"
+                  className="w-full rounded-[1.2rem] border border-dashed border-[var(--border-medium)] bg-[color:var(--bg-primary)] px-4 py-3 text-sm text-[color:var(--text-secondary)]"
                   type="file"
                   accept=".pdf,.docx,.txt,.md"
                   onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
@@ -261,63 +262,59 @@ export default function ResumeBuilder() {
               </label>
 
               <label className="space-y-2">
-                <span className="text-sm font-medium text-slate-200">Target Role</span>
+                <span className="text-sm font-medium text-[color:var(--text-secondary)]">Target Role</span>
                 <input
-                  className="w-full rounded-[1.2rem] border border-white/10 bg-[#0b1424] px-4 py-3 text-white outline-none transition focus:border-cyan"
+                  className={fieldClass}
                   value={targetRole}
                   onChange={(event) => setTargetRole(event.target.value)}
                   placeholder="Backend Engineer"
                 />
               </label>
 
-              <button
-                className="w-full rounded-[1.5rem] bg-[linear-gradient(135deg,#60a5fa,#22d3ee)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-slate-950 transition hover:opacity-90"
-                type="submit"
-                disabled={loading}
-              >
+              <Button className="w-full" size="lg" type="submit" disabled={loading}>
                 {loading ? 'Analiz hazırlanıyor...' : 'Analyze Uploaded CV'}
-              </button>
+              </Button>
             </form>
           )}
 
-          <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+          <div className="mt-6 rounded-[1.5rem] border border-[var(--border-soft)] bg-[color:var(--bg-primary)] p-4">
             <p className="text-xs uppercase tracking-[0.28em] text-cyan/80">System Status</p>
-            <p className="mt-3 text-sm leading-7 text-slate-200">{status}</p>
+            <p className="mt-3 text-sm leading-7 text-[color:var(--text-secondary)]">{status}</p>
           </div>
 
           <div className="mt-6 grid gap-3">
             {quickChecks.map((item) => (
-              <div key={item} className="rounded-[1.3rem] border border-white/10 bg-[#0b1424]/85 px-4 py-3 text-sm text-slate-200">
+              <div key={item} className="rounded-[1.3rem] border border-[var(--border-soft)] bg-[color:var(--bg-secondary)] px-4 py-3 text-sm text-[color:var(--text-secondary)]">
                 {item}
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </SurfaceCard>
 
       <div className="space-y-6">
-        <div className="glass-panel relative overflow-hidden rounded-[2rem] p-6">
+        <SurfaceCard tone="glass" className="relative overflow-hidden rounded-[2rem] p-6">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.14),transparent_24%)]" />
           <div className="relative">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.28em] text-cyan/80">Live Output</p>
-                <h3 className="mt-3 text-2xl font-semibold text-white">
+                <h3 className="mt-3 text-2xl font-semibold text-[color:var(--text-primary)]">
                   {activeResult ? activeResult.title : 'AI önce anlar, sonra üretir'}
                 </h3>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-[color:var(--text-secondary)]">
                   {activeResult
                     ? activeResult.summary
                     : 'Bu panel, backend’den dönen draft, warning, template seçimi ve analiz çıktısını canlı şekilde göstermek için kurgulandı.'}
                 </p>
               </div>
 
-              <div className="min-w-[220px] rounded-[1.4rem] border border-white/10 bg-[#0b1424]/90 p-4">
+              <div className="min-w-[220px] rounded-[1.4rem] border border-[var(--border-soft)] bg-[color:var(--bg-primary)] p-4">
                 <p className="text-xs uppercase tracking-[0.24em] text-cyan/80">Template Intelligence</p>
-                <p className="mt-3 text-lg font-semibold text-white">
+                <p className="mt-3 text-lg font-semibold text-[color:var(--text-primary)]">
                   {draft?.template ?? selectedTemplateMeta?.name ?? 'AI Smart'}
                 </p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">
+                <p className="mt-2 text-sm leading-6 text-[color:var(--text-secondary)]">
                   {selectedTemplateMeta?.description ?? 'Template kararı backend’de veriye göre şekilleniyor.'}
                 </p>
               </div>
@@ -326,7 +323,7 @@ export default function ResumeBuilder() {
             {draft?.profile_warnings?.length ? (
               <div className="mt-6 grid gap-3 md:grid-cols-2">
                 {draft.profile_warnings.map((warning) => (
-                  <div key={warning} className="rounded-[1.3rem] border border-amber-300/20 bg-amber-400/10 p-4 text-sm leading-7 text-amber-50">
+                  <div key={warning} className="rounded-[1.3rem] border border-[color:var(--warning)]/20 bg-[color:var(--warning-muted)] p-4 text-sm leading-7 text-[color:var(--warning)]">
                     {warning}
                   </div>
                 ))}
@@ -336,49 +333,47 @@ export default function ResumeBuilder() {
             {activeResult?.recommendations?.length ? (
               <div className="mt-6 grid gap-3 md:grid-cols-3">
                 {activeResult.recommendations.map((item) => (
-                  <div key={item} className="rounded-[1.3rem] border border-white/10 bg-white/5 p-4 text-sm leading-7 text-slate-200">
+                  <div key={item} className="rounded-[1.3rem] border border-[var(--border-soft)] bg-[color:var(--bg-secondary)] p-4 text-sm leading-7 text-[color:var(--text-secondary)]">
                     {item}
                   </div>
                 ))}
               </div>
             ) : null}
 
-            <div className="mt-6 rounded-[1.7rem] border border-white/10 bg-[#08101b]/95 p-5">
+            <div className="mt-6 rounded-[1.7rem] border border-[var(--border-soft)] bg-[color:var(--bg-primary)] p-5">
               <div className="flex items-center justify-between gap-4">
                 <p className="text-xs uppercase tracking-[0.3em] text-cyan/80">Output Surface</p>
                 {draft?.version_number ? (
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-300">
-                    Version {draft.version_number}
-                  </span>
+                  <Badge>Version {draft.version_number}</Badge>
                 ) : null}
               </div>
-              <pre className="mt-4 max-h-[34rem] overflow-auto whitespace-pre-wrap rounded-[1.35rem] border border-white/10 bg-[#050b16] p-5 text-sm leading-7 text-slate-100">
+              <pre className="mt-4 max-h-[34rem] overflow-auto whitespace-pre-wrap rounded-[1.35rem] border border-[var(--border-soft)] bg-[color:var(--bg-app)] p-5 text-sm leading-7 text-[color:var(--text-primary)]">
                 {activeResult?.content ??
                   'Burada gerçek backend çıktısı, warning kartları ve export öncesi canlı belge yüzeyi yer alacak. Auto draft ile kayıtlı profili, upload analyze ile mevcut CV’yi test edebilirsin.'}
               </pre>
             </div>
           </div>
-        </div>
+        </SurfaceCard>
 
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="soft-panel rounded-[1.6rem] p-5">
+          <SurfaceCard className="rounded-[1.6rem] p-5">
             <p className="text-xs uppercase tracking-[0.24em] text-cyan/80">Stored Profile</p>
-            <p className="mt-3 text-sm leading-7 text-slate-300">
+            <p className="mt-3 text-sm leading-7 text-[color:var(--text-secondary)]">
               Generate butonu doğrudan DB’deki profil, deneyim, proje ve foto üzerinden çalışacak şekilde kurgulandı.
             </p>
-          </div>
-          <div className="soft-panel rounded-[1.6rem] p-5">
+          </SurfaceCard>
+          <SurfaceCard className="rounded-[1.6rem] p-5">
             <p className="text-xs uppercase tracking-[0.24em] text-cyan/80">AI Review</p>
-            <p className="mt-3 text-sm leading-7 text-slate-300">
+            <p className="mt-3 text-sm leading-7 text-[color:var(--text-secondary)]">
               Draft üretmeden önce warning ve consultant-style iyileştirme sinyalleri backend’de hesaplanıyor.
             </p>
-          </div>
-          <div className="soft-panel rounded-[1.6rem] p-5">
+          </SurfaceCard>
+          <SurfaceCard className="rounded-[1.6rem] p-5">
             <p className="text-xs uppercase tracking-[0.24em] text-cyan/80">Export Chain</p>
-            <p className="mt-3 text-sm leading-7 text-slate-300">
+            <p className="mt-3 text-sm leading-7 text-[color:var(--text-secondary)]">
               Aynı akış finalize ve PDF/DOCX export hattına doğrudan bağlanabilecek şekilde hazır.
             </p>
-          </div>
+          </SurfaceCard>
         </div>
       </div>
     </div>
