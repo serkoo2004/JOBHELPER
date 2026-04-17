@@ -1,5 +1,14 @@
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
+from backend.app.core.admin import require_admin
+from backend.app.schemas.admin import AdminDashboardResponse, AdminOverviewResponse
+from backend.app.schemas.ai_session import (
+    AiMessageResponse,
+    AiSessionCreateRequest,
+    AiSessionMessageRequest,
+    AiSessionResponse,
+)
+from backend.app.schemas.audit import AuditLogResponse
 from backend.app.schemas.auth import LoginRequest, LoginResponse
 from backend.app.schemas.profile import UserProfile, UserProfileCreate, UserProfileUpdate
 from backend.app.schemas.resume import (
@@ -14,7 +23,9 @@ from backend.app.schemas.resume import (
     ResumeGenerateRequest,
     ResumePreviewResponse,
     ResumeResponse,
+    ResumeStoredSummaryResponse,
     ResumeTemplateOption,
+    ResumeVersionResponse,
 )
 from backend.app.schemas.cover_letter import CoverLetterRequest, CoverLetterResponse
 from backend.app.schemas.career_tools import (
@@ -33,6 +44,9 @@ from backend.app.schemas.document_flow import (
     DocumentFlowResponse,
     DocumentFlowStartRequest,
 )
+from backend.app.services.ai_session_service import AiSessionService
+from backend.app.services.admin_service import AdminService
+from backend.app.services.audit_service import AuditService
 from backend.app.services.auth_service import AuthService
 from backend.app.services.career_service import CareerService
 from backend.app.services.cover_letter_service import CoverLetterService
@@ -48,10 +62,51 @@ api_router = APIRouter()
 def health_check() -> dict[str, str]:
     return {"status": "ok", "service": "Career Copilot API"}
 
+
+@api_router.get("/system/audit-logs", response_model=list[AuditLogResponse], tags=["admin"], summary="List recent audit logs")
+def list_audit_logs(limit: int = Query(default=100, ge=1, le=500), _: None = Depends(require_admin)) -> list[AuditLogResponse]:
+    return AuditService.list_logs(limit)
+
+
+@api_router.get("/admin/overview", response_model=AdminOverviewResponse, tags=["admin"], summary="Get admin overview metrics")
+def get_admin_overview(_: None = Depends(require_admin)) -> AdminOverviewResponse:
+    return AdminService.get_overview()
+
+
+@api_router.get("/admin/dashboard", response_model=AdminDashboardResponse, tags=["admin"], summary="Get admin dashboard data")
+def get_admin_dashboard(_: None = Depends(require_admin)) -> AdminDashboardResponse:
+    return AdminService.get_dashboard()
+
 @api_router.post("/auth/login", response_model=LoginResponse, tags=["auth"], summary="Create login token")
 def login(payload: LoginRequest) -> LoginResponse:
     token = AuthService.login(payload.email)
     return LoginResponse(access_token=token, token_type="bearer")
+
+
+@api_router.post("/ai/sessions", response_model=AiSessionResponse, tags=["auth"], summary="Create AI conversation session")
+def create_ai_session(payload: AiSessionCreateRequest) -> AiSessionResponse:
+    return AiSessionService.create_session(payload)
+
+
+@api_router.get("/ai/sessions/{session_id}", response_model=AiSessionResponse, tags=["auth"], summary="Get AI conversation session")
+def get_ai_session(session_id: str) -> AiSessionResponse:
+    session = AiSessionService.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="AI session not found")
+    return session
+
+
+@api_router.get("/ai/users/{user_id}/sessions", response_model=list[AiSessionResponse], tags=["auth"], summary="List AI sessions for a user")
+def list_ai_sessions(user_id: str) -> list[AiSessionResponse]:
+    return AiSessionService.list_user_sessions(user_id)
+
+
+@api_router.post("/ai/sessions/{session_id}/messages", response_model=AiMessageResponse, tags=["auth"], summary="Add message to AI session")
+def add_ai_session_message(session_id: str, payload: AiSessionMessageRequest) -> AiMessageResponse:
+    message = AiSessionService.add_message(session_id, payload)
+    if not message:
+        raise HTTPException(status_code=404, detail="AI session not found")
+    return message
 
 @api_router.post("/profiles", response_model=UserProfile, tags=["profiles"], summary="Create profile")
 def create_profile(payload: UserProfileCreate) -> UserProfile:
@@ -75,6 +130,15 @@ def update_profile(user_id: str, payload: UserProfileUpdate) -> UserProfile:
 @api_router.post("/resumes/analyze", response_model=ResumeResponse, tags=["resume-tools"], summary="Analyze CV text")
 def analyze_resume(payload: ResumeAnalyzeRequest) -> ResumeResponse:
     return ResumeService.analyze_resume(payload)
+
+
+@api_router.post("/resumes/analyze-upload", response_model=ResumeResponse, tags=["resume-tools"], summary="Upload and analyze CV file")
+async def analyze_resume_upload(file: UploadFile = File(...), target_role: str | None = Form(None)) -> ResumeResponse:
+    try:
+        content_bytes = await file.read()
+        return ResumeService.analyze_uploaded_resume(file.filename or "resume.txt", content_bytes, target_role)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 @api_router.post("/resumes/generate", response_model=ResumeResponse, tags=["resume-tools"], summary="Generate CV content")
 def generate_resume(payload: ResumeGenerateRequest) -> ResumeResponse:
@@ -199,6 +263,24 @@ def export_resume_draft(draft_id: str, payload: ResumeExportRequest) -> FileResp
         media_type=media_type,
         filename=export_path.name,
     )
+
+
+@api_router.get("/resumes/profile/{profile_id}", response_model=list[ResumeStoredSummaryResponse], tags=["resume-drafts"], summary="List saved resumes for a profile")
+def list_saved_resumes(profile_id: str) -> list[ResumeStoredSummaryResponse]:
+    return ResumeService.list_saved_resumes(profile_id)
+
+
+@api_router.get("/resumes/{resume_id}/versions", response_model=list[ResumeVersionResponse], tags=["resume-drafts"], summary="List saved resume versions")
+def list_resume_versions(resume_id: str) -> list[ResumeVersionResponse]:
+    return ResumeService.list_resume_versions(resume_id)
+
+
+@api_router.post("/resumes/{resume_id}/versions/{version_number}/restore", response_model=ResumeDraftResponse, tags=["resume-drafts"], summary="Restore a saved resume version into a draft")
+def restore_resume_version(resume_id: str, version_number: int) -> ResumeDraftResponse:
+    draft = ResumeService.restore_resume_version(resume_id, version_number)
+    if draft is None:
+        raise HTTPException(status_code=404, detail="Resume version not found")
+    return draft
 
 @api_router.post("/cover-letters/generate", response_model=CoverLetterResponse, tags=["cover-letters"], summary="Generate cover letter")
 def generate_cover_letter(payload: CoverLetterRequest) -> CoverLetterResponse:

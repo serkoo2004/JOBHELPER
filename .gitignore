@@ -25,6 +25,9 @@ dist/
 
 # Local environment / secrets
 .env
+API KEYS.txt
+ai_career_platform_proje_notlari.txt
+evet şimdi olması gerekenler.txt
 
 # Local databases
 *.db

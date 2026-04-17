@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import json
 from html import escape
+from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
+from pypdf import PdfReader
 from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -17,6 +20,10 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
+from sqlmodel import desc, select
+
+from backend.app.core.db import get_session
+from backend.app.models.resume import ResumeModel, ResumeVersionModel
 from backend.app.schemas.resume import (
     ResumeAnalyzeRequest,
     ResumeAutoDraftRequest,
@@ -29,7 +36,9 @@ from backend.app.schemas.resume import (
     ResumeGenerateRequest,
     ResumePreviewResponse,
     ResumeResponse,
+    ResumeStoredSummaryResponse,
     ResumeTemplateOption,
+    ResumeVersionResponse,
 )
 from backend.app.services.ai_chat_service import AiChatService
 from backend.app.services.in_memory_store import database
@@ -217,6 +226,16 @@ class ResumeService:
             template_reason=None,
         )
 
+    @classmethod
+    def analyze_uploaded_resume(cls, filename: str, content_bytes: bytes, target_role: str | None = None) -> ResumeResponse:
+        extracted_text = cls._extract_uploaded_resume_text(filename, content_bytes)
+        return cls.analyze_resume(
+            ResumeAnalyzeRequest(
+                content=extracted_text,
+                target_role=target_role,
+            )
+        )
+
     @staticmethod
     def generate_resume(payload: ResumeGenerateRequest) -> ResumeResponse:
         result = AiChatService.generate_resume(
@@ -272,6 +291,8 @@ class ResumeService:
         )
         database["resume_drafts"][draft_id] = {
             "draft_id": draft_id,
+            "resume_id": None,
+            "version_number": None,
             "profile": payload.profile.model_dump(),
             "target_role": payload.target_role,
             "generation_context": payload.generation_context or {},
@@ -321,7 +342,7 @@ class ResumeService:
 
         generation_context["resume_review_notes"] = " | ".join(warnings[:4])
 
-        return cls.create_draft(
+        draft = cls.create_draft(
             ResumeDraftCreateRequest(
                 profile=UserProfileCreate.model_validate(profile_data),
                 template=payload.template,
@@ -331,6 +352,10 @@ class ResumeService:
                 profile_warnings=warnings,
             )
         )
+        stored = database["resume_drafts"].get(draft.draft_id)
+        if stored is not None:
+            stored["source_profile_id"] = payload.profile_id
+        return draft
 
     @classmethod
     def get_draft(cls, draft_id: str) -> ResumeDraftResponse | None:
@@ -380,7 +405,10 @@ class ResumeService:
         draft = database["resume_drafts"].get(draft_id)
         if not draft:
             return None
+        if draft.get("finalized") and draft.get("resume_id") and draft.get("version_number"):
+            return cls._draft_to_response(draft)
         draft["finalized"] = True
+        cls._persist_finalized_draft(draft)
         return cls._draft_to_response(draft)
 
     @classmethod
@@ -402,6 +430,12 @@ class ResumeService:
             "path": str(output_path),
             "format": payload.format,
         }
+        cls._attach_export_to_version(
+            draft.get("resume_id"),
+            draft.get("version_number"),
+            payload.format,
+            output_path,
+        )
         return output_path
 
     @classmethod
@@ -461,6 +495,91 @@ class ResumeService:
         return str(preview["html"])
 
     @classmethod
+    def list_saved_resumes(cls, profile_id: str) -> list[ResumeStoredSummaryResponse]:
+        with get_session() as session:
+            rows = session.exec(
+                select(ResumeModel)
+                .where(ResumeModel.profile_id == profile_id)
+                .order_by(desc(ResumeModel.updated_at))
+            ).all()
+            return [
+                ResumeStoredSummaryResponse(
+                    resume_id=row.resume_id,
+                    profile_id=row.profile_id,
+                    title=row.title,
+                    template=row.template,
+                    latest_version=row.latest_version,
+                    status=row.status,
+                    created_at=row.created_at,
+                    updated_at=row.updated_at,
+                )
+                for row in rows
+            ]
+
+    @classmethod
+    def list_resume_versions(cls, resume_id: str) -> list[ResumeVersionResponse]:
+        with get_session() as session:
+            rows = session.exec(
+                select(ResumeVersionModel)
+                .where(ResumeVersionModel.resume_id == resume_id)
+                .order_by(desc(ResumeVersionModel.version_number))
+            ).all()
+            return [cls._version_to_response(row) for row in rows]
+
+    @classmethod
+    def restore_resume_version(cls, resume_id: str, version_number: int) -> ResumeDraftResponse | None:
+        with get_session() as session:
+            version = session.exec(
+                select(ResumeVersionModel)
+                .where(ResumeVersionModel.resume_id == resume_id)
+                .where(ResumeVersionModel.version_number == version_number)
+            ).first()
+            resume = session.get(ResumeModel, resume_id)
+            if not version or not resume:
+                return None
+
+        profile = None
+        if resume.profile_id:
+            profile = ProfileService.get_profile(resume.profile_id)
+        if not profile:
+            return None
+
+        preview_id = cls._store_preview(
+            profile=profile.model_dump(),
+            result=ResumeResponse(
+                title=version.title,
+                summary=version.summary or "",
+                content=version.content,
+                recommendations=cls._decode_json_list(version.recommendations_json),
+                template=version.template,
+                template_reason=version.template_reason,
+            ),
+            target_role=profile.target_role,
+        )
+
+        draft_id = uuid4().hex
+        database["resume_drafts"][draft_id] = {
+            "draft_id": draft_id,
+            "resume_id": resume_id,
+            "version_number": version.version_number,
+            "profile": profile.model_dump(),
+            "source_profile_id": resume.profile_id,
+            "target_role": profile.target_role,
+            "generation_context": {},
+            "title": version.title,
+            "summary": version.summary or "",
+            "content": version.content,
+            "recommendations": cls._decode_json_list(version.recommendations_json),
+            "profile_warnings": cls._decode_json_list(version.profile_warnings_json),
+            "template": version.template,
+            "template_reason": version.template_reason,
+            "tone": "professional",
+            "finalized": False,
+            "preview_id": preview_id,
+        }
+        return cls._draft_to_response(database["resume_drafts"][draft_id])
+
+    @classmethod
     def _store_preview(
         cls,
         profile: dict,
@@ -479,10 +598,78 @@ class ResumeService:
         }
         return preview_id
 
+    @classmethod
+    def _persist_finalized_draft(cls, draft: dict) -> None:
+        profile_id = draft.get("source_profile_id")
+        with get_session() as session:
+            resume = session.get(ResumeModel, draft.get("resume_id")) if draft.get("resume_id") else None
+            if resume is None:
+                resume = ResumeModel(
+                    profile_id=profile_id,
+                    title=draft["title"],
+                    template=draft.get("template"),
+                    latest_version=0,
+                    status="finalized",
+                )
+                session.add(resume)
+                session.flush()
+
+            next_version = (resume.latest_version or 0) + 1
+            version = ResumeVersionModel(
+                resume_id=resume.resume_id,
+                version_number=next_version,
+                title=draft["title"],
+                summary=draft["summary"],
+                content=draft["content"],
+                template=draft.get("template"),
+                template_reason=draft.get("template_reason"),
+                recommendations_json=cls._encode_json_list(draft.get("recommendations", [])),
+                profile_warnings_json=cls._encode_json_list(draft.get("profile_warnings", [])),
+                status="finalized",
+            )
+            session.add(version)
+
+            resume.title = draft["title"]
+            resume.template = draft.get("template")
+            resume.latest_version = next_version
+            resume.status = "finalized"
+            session.add(resume)
+            session.commit()
+
+            draft["resume_id"] = resume.resume_id
+            draft["version_number"] = next_version
+
+    @classmethod
+    def _attach_export_to_version(
+        cls,
+        resume_id: str | None,
+        version_number: int | None,
+        export_format: str,
+        output_path: Path,
+    ) -> None:
+        if not resume_id or not version_number:
+            return
+        with get_session() as session:
+            version = session.exec(
+                select(ResumeVersionModel)
+                .where(ResumeVersionModel.resume_id == resume_id)
+                .where(ResumeVersionModel.version_number == version_number)
+            ).first()
+            if not version:
+                return
+            if export_format == "pdf":
+                version.pdf_path = str(output_path)
+            else:
+                version.docx_path = str(output_path)
+            session.add(version)
+            session.commit()
+
     @staticmethod
     def _draft_to_response(draft: dict) -> ResumeDraftResponse:
         return ResumeDraftResponse(
             draft_id=draft["draft_id"],
+            resume_id=draft.get("resume_id"),
+            version_number=draft.get("version_number"),
             title=draft["title"],
             summary=draft["summary"],
             content=draft["content"],
@@ -493,6 +680,66 @@ class ResumeService:
             finalized=bool(draft.get("finalized")),
             preview_url=f"/api/v1/resumes/drafts/{draft['draft_id']}/preview",
         )
+
+    @staticmethod
+    def _encode_json_list(values: list[str]) -> str | None:
+        return json.dumps(values, ensure_ascii=False) if values else None
+
+    @staticmethod
+    def _decode_json_list(value: str | None) -> list[str]:
+        if not value:
+            return []
+        try:
+            decoded = json.loads(value)
+        except json.JSONDecodeError:
+            return []
+        return [str(item) for item in decoded] if isinstance(decoded, list) else []
+
+    @classmethod
+    def _version_to_response(cls, version: ResumeVersionModel) -> ResumeVersionResponse:
+        return ResumeVersionResponse(
+            version_id=version.version_id,
+            resume_id=version.resume_id,
+            version_number=version.version_number,
+            title=version.title,
+            summary=version.summary,
+            content=version.content,
+            template=version.template,
+            template_reason=version.template_reason,
+            recommendations=cls._decode_json_list(version.recommendations_json),
+            profile_warnings=cls._decode_json_list(version.profile_warnings_json),
+            pdf_url=version.pdf_path,
+            docx_url=version.docx_path,
+            status=version.status,
+            created_at=version.created_at,
+        )
+
+    @staticmethod
+    def _extract_uploaded_resume_text(filename: str, content_bytes: bytes) -> str:
+        suffix = Path(filename).suffix.lower()
+        if suffix == ".pdf":
+            reader = PdfReader(BytesIO(content_bytes))
+            parts = [page.extract_text() or "" for page in reader.pages]
+            extracted = "\n".join(part.strip() for part in parts if part.strip())
+            if extracted:
+                return extracted
+            raise ValueError("PDF içinden okunabilir metin çıkarılamadı")
+        if suffix == ".docx":
+            document = Document(BytesIO(content_bytes))
+            extracted = "\n".join(paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip())
+            if extracted:
+                return extracted
+            raise ValueError("DOCX içinden okunabilir metin çıkarılamadı")
+        if suffix in {".txt", ".md"}:
+            for encoding in ("utf-8", "utf-8-sig", "cp1254", "latin-1"):
+                try:
+                    extracted = content_bytes.decode(encoding).strip()
+                    if extracted:
+                        return extracted
+                except UnicodeDecodeError:
+                    continue
+            raise ValueError("Metin dosyası çözümlenemedi")
+        raise ValueError("Desteklenmeyen dosya türü. PDF, DOCX veya TXT yükleyin.")
 
 
     @staticmethod

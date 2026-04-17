@@ -13,22 +13,42 @@ export default function AssetManager() {
   const [templateFile, setTemplateFile] = useState<File | null>(null);
   const [status, setStatus] = useState('');
 
-  useEffect(() => {
-    void refreshAssets();
-  }, []);
-
   const refreshAssets = async () => {
     try {
       const [photoData, templateData] = await Promise.all([
         apiFetch<MediaItem[]>('/assets/photos'),
         apiFetch<MediaItem[]>('/assets/templates'),
       ]);
-      setPhotos(photoData || []);
-      setTemplates(templateData || []);
+      return {
+        photos: photoData || [],
+        templates: templateData || [],
+      };
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Asset listesi yuklenemedi.');
+      return {
+        photos: [],
+        templates: [],
+      };
     }
   };
+
+  useEffect(() => {
+    let active = true;
+
+    const loadAssets = async () => {
+      const assetState = await refreshAssets();
+      if (active) {
+        setPhotos(assetState.photos);
+        setTemplates(assetState.templates);
+      }
+    };
+
+    void loadAssets();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const uploadFile = async (url: string, file: File | null, label: string) => {
     if (!file) {
@@ -45,7 +65,9 @@ export default function AssetManager() {
         method: 'POST',
         body: formData,
       });
-      await refreshAssets();
+      const assetState = await refreshAssets();
+      setPhotos(assetState.photos);
+      setTemplates(assetState.templates);
       setStatus(`${label} basariyla yuklendi.`);
       if (label === 'Fotograf') setPhotoFile(null);
       if (label === 'Sablon') setTemplateFile(null);

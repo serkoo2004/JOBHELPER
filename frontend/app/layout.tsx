@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Career Copilot',
-  description: 'Yapay zeka destekli kariyer koçu ve CV oluşturma platformu.',
+  title: 'Career Copilot Studio',
+  description: 'Premium AI career copilot. CV studio, upload analysis, photo refinement, versioned output ve application tracking deneyimi.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

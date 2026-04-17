@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -65,6 +66,8 @@ class ResumeDraftUpdateRequest(BaseModel):
 
 class ResumeDraftResponse(BaseModel):
     draft_id: str
+    resume_id: str | None = None
+    version_number: int | None = None
     title: str
     summary: str
     content: str
@@ -82,3 +85,31 @@ class ResumeExportRequest(BaseModel):
 
 class ResumeFileGenerateRequest(ResumeGenerateRequest):
     format: Literal["pdf", "docx"]
+
+
+class ResumeStoredSummaryResponse(BaseModel):
+    resume_id: str
+    profile_id: str | None = None
+    title: str
+    template: str | None = None
+    latest_version: int
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ResumeVersionResponse(BaseModel):
+    version_id: str
+    resume_id: str
+    version_number: int
+    title: str
+    summary: str | None = None
+    content: str
+    template: str | None = None
+    template_reason: str | None = None
+    recommendations: list[str] = Field(default_factory=list)
+    profile_warnings: list[str] = Field(default_factory=list)
+    pdf_url: str | None = None
+    docx_url: str | None = None
+    status: str
+    created_at: datetime

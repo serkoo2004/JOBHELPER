@@ -4,7 +4,16 @@ from sqlalchemy import inspect, text
 from sqlmodel import SQLModel, Session, create_engine
 
 from backend.app.core.config import settings
-from backend.app.models import DocumentFlowModel, JobApplicationModel, ProfileModel
+from backend.app.models import (
+    AiMessageModel,
+    AiSessionModel,
+    AuditLogModel,
+    DocumentFlowModel,
+    JobApplicationModel,
+    ProfileModel,
+    ResumeModel,
+    ResumeVersionModel,
+)
 
 DB_FILE = Path(__file__).resolve().parents[2] / "career_copilot.db"
 DATABASE_URL = settings.database_url or f"sqlite:///{DB_FILE}"

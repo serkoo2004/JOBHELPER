@@ -27,18 +27,32 @@ export default function ApplicationTracker() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    void fetchApplications();
-  }, []);
-
   const fetchApplications = async () => {
     try {
       const data = await apiFetch<JobApplication[]>('/applications');
-      setApplications(data || []);
+      return data || [];
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Basvurular yuklenemedi.');
+      return [];
     }
   };
+
+  useEffect(() => {
+    let active = true;
+
+    const loadApplications = async () => {
+      const data = await fetchApplications();
+      if (active) {
+        setApplications(data);
+      }
+    };
+
+    void loadApplications();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const metrics = useMemo(() => {
     const total = applications.length;
@@ -63,7 +77,8 @@ export default function ApplicationTracker() {
       });
       setStatus('Basvuru kaydedildi ve panel guncellendi.');
       setForm(initialApplication);
-      await fetchApplications();
+      const nextApplications = await fetchApplications();
+      setApplications(nextApplications);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Basvuru kaydedilemedi.');
     } finally {

@@ -43,6 +43,10 @@ class Settings:
     default_locale: str = field(default_factory=lambda: os.getenv("DEFAULT_LOCALE", "tr-TR"))
     allow_origins: list[str] = field(default_factory=lambda: _get_list("ALLOW_ORIGINS", ["*"]))
     database_url: str | None = field(default_factory=lambda: _normalize_database_url(os.getenv("DATABASE_URL")))
+    rate_limit_enabled: bool = field(default_factory=lambda: _get_bool("RATE_LIMIT_ENABLED", True))
+    rate_limit_max_requests: int = field(default_factory=lambda: int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "120")))
+    rate_limit_window_seconds: int = field(default_factory=lambda: int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60")))
+    admin_api_key: str | None = field(default_factory=lambda: os.getenv("ADMIN_API_KEY"))
 
     google_api_key: str | None = field(default_factory=lambda: os.getenv("GOOGLE_API_KEY"))
     google_model: str = field(default_factory=lambda: os.getenv("GOOGLE_MODEL", "gemini-2.5-flash"))

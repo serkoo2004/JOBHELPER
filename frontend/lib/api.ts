@@ -14,6 +14,8 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
+    credentials: 'omit',
+    cache: 'no-store',
     headers,
     body:
       options.body && typeof options.body === 'object' && !isFormData
