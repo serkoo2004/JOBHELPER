@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
+import logging
 from backend.app.core.admin import require_admin
 from backend.app.schemas.admin import AdminDashboardResponse, AdminOverviewResponse
 from backend.app.schemas.ai_session import (
@@ -9,7 +10,7 @@ from backend.app.schemas.ai_session import (
     AiSessionResponse,
 )
 from backend.app.schemas.audit import AuditLogResponse
-from backend.app.schemas.auth import LoginRequest, LoginResponse
+from backend.app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest
 from backend.app.schemas.profile import UserProfile, UserProfileCreate, UserProfileUpdate
 from backend.app.schemas.resume import (
     ResumeAnalyzeRequest,
@@ -38,7 +39,7 @@ from backend.app.schemas.career_tools import (
     PortfolioSummaryRequest,
 )
 from backend.app.schemas.tracker import JobApplicationCreate, JobApplication, JobApplicationUpdate
-from backend.app.schemas.media import MediaItem, PhotoStudioRequest, PhotoStudioResponse
+from backend.app.schemas.media import MediaItem, PhotoDeleteRequest, ProfilePhotoRequest, PhotoStudioRequest, PhotoStudioResponse
 from backend.app.schemas.document_flow import (
     DocumentFlowAnswerRequest,
     DocumentFlowResponse,
@@ -52,11 +53,12 @@ from backend.app.services.career_service import CareerService
 from backend.app.services.cover_letter_service import CoverLetterService
 from backend.app.services.document_flow_service import DocumentFlowService
 from backend.app.services.job_tracker_service import JobTrackerService
-from backend.app.services.media_service import MediaService
+from backend.app.services.media_service import MediaService, PhotoGenerationError
 from backend.app.services.profile_service import ProfileService
 from backend.app.services.resume_service import ResumeService
 
 api_router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @api_router.get("/health", tags=["system"], summary="Health check")
 def health_check() -> dict[str, str]:
@@ -80,6 +82,12 @@ def get_admin_dashboard(_: None = Depends(require_admin)) -> AdminDashboardRespo
 @api_router.post("/auth/login", response_model=LoginResponse, tags=["auth"], summary="Create login token")
 def login(payload: LoginRequest) -> LoginResponse:
     token = AuthService.login(payload.email)
+    return LoginResponse(access_token=token, token_type="bearer")
+
+
+@api_router.post("/auth/register", response_model=LoginResponse, tags=["auth"], summary="Create account token")
+def register(payload: RegisterRequest) -> LoginResponse:
+    token = AuthService.register(payload.name, payload.email, payload.password)
     return LoginResponse(access_token=token, token_type="bearer")
 
 
@@ -349,7 +357,34 @@ def coach_application(application_id: str) -> CareerToolResponse:
 
 @api_router.post("/assets/photos/upload", response_model=MediaItem, tags=["assets"], summary="Upload photo")
 def upload_photo(photo: UploadFile = File(...)) -> MediaItem:
-    return MediaService.save_photo(photo)
+    try:
+        return MediaService.save_photo(photo)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@api_router.delete("/assets/photos", tags=["assets"], summary="Delete uploaded or generated photo")
+def delete_photo(photo_path: str = Query(...)) -> dict[str, bool]:
+    deleted = MediaService.delete_photo(photo_path)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    return {"deleted": True}
+
+
+@api_router.post("/assets/photos/delete", tags=["assets"], summary="Delete uploaded or generated photo")
+def delete_photo_post(payload: PhotoDeleteRequest) -> dict[str, bool]:
+    deleted = MediaService.delete_photo(payload.photo_path)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    return {"deleted": True}
+
+
+@api_router.post("/assets/photos/use-in-profile", response_model=MediaItem, tags=["assets"], summary="Use photo as profile CV photo")
+def use_photo_in_profile(payload: ProfilePhotoRequest) -> MediaItem:
+    try:
+        return MediaService.set_profile_photo(payload)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
 
 @api_router.post("/assets/photos/professionalize", response_model=PhotoStudioResponse, tags=["assets"], summary="Convert uploaded photo into CV-ready headshot")
@@ -358,10 +393,21 @@ def professionalize_photo(payload: PhotoStudioRequest) -> PhotoStudioResponse:
         return MediaService.professionalize_photo(payload)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Photo not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except PhotoGenerationError as exc:
+        logger.error("Photo generation failed: %s", exc)
+        raise HTTPException(status_code=exc.status_code, detail=exc.public_message)
+    except RuntimeError as exc:
+        logger.exception("Unexpected photo generation failure: %s", exc)
+        raise HTTPException(status_code=502, detail="Photo generation failed. Please try again later.")
 
 @api_router.post("/assets/templates/upload", response_model=MediaItem, tags=["assets"], summary="Upload template")
 def upload_template(template: UploadFile = File(...)) -> MediaItem:
-    return MediaService.save_template(template)
+    try:
+        return MediaService.save_template(template)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 @api_router.get("/assets/templates", response_model=list[MediaItem], tags=["assets"], summary="List templates")
 def list_templates() -> list[MediaItem]:
     return MediaService.list_templates()
@@ -369,6 +415,10 @@ def list_templates() -> list[MediaItem]:
 @api_router.get("/assets/photos", response_model=list[MediaItem], tags=["assets"], summary="List photos")
 def list_photos() -> list[MediaItem]:
     return MediaService.list_photos()
+
+@api_router.get("/assets/photos/generated", response_model=list[MediaItem], tags=["assets"], summary="List generated AI photos")
+def list_generated_photos() -> list[MediaItem]:
+    return MediaService.list_generated_photos()
 
 
 @api_router.post("/flows/document", response_model=DocumentFlowResponse, tags=["resume-flow"], summary="Start document flow")

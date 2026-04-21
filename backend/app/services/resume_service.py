@@ -323,7 +323,11 @@ class ResumeService:
             generation_context,
         )
 
-        if payload.auto_professionalize_photo and profile_data.get("photo_url"):
+        if (
+            payload.auto_professionalize_photo
+            and profile_data.get("photo_url")
+            and "/photos/processed/" not in str(profile_data.get("photo_url"))
+        ):
             photo_style = generation_context.get("photo_style") or generation_context.get("visual_preferences") or "professional dark background"
             try:
                 processed = MediaService.professionalize_photo(
@@ -718,18 +722,32 @@ class ResumeService:
     def _extract_uploaded_resume_text(filename: str, content_bytes: bytes) -> str:
         suffix = Path(filename).suffix.lower()
         if suffix == ".pdf":
-            reader = PdfReader(BytesIO(content_bytes))
-            parts = [page.extract_text() or "" for page in reader.pages]
-            extracted = "\n".join(part.strip() for part in parts if part.strip())
+            try:
+                reader = PdfReader(BytesIO(content_bytes))
+                parts = [page.extract_text() or "" for page in reader.pages]
+                extracted = "\n".join(part.strip() for part in parts if part.strip())
+            except Exception as exc:
+                raise ValueError(
+                    "PDF dosyasi okunamadi. Dosya bozuk, sifreli veya metin katmani icermiyor olabilir."
+                ) from exc
             if extracted:
                 return extracted
-            raise ValueError("PDF içinden okunabilir metin çıkarılamadı")
+            raise ValueError("PDF icinden okunabilir metin cikarilamadi")
         if suffix == ".docx":
-            document = Document(BytesIO(content_bytes))
-            extracted = "\n".join(paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip())
+            try:
+                document = Document(BytesIO(content_bytes))
+                extracted = "\n".join(
+                    paragraph.text.strip()
+                    for paragraph in document.paragraphs
+                    if paragraph.text.strip()
+                )
+            except Exception as exc:
+                raise ValueError(
+                    "DOCX dosyasi okunamadi. Dosya bozuk olabilir veya gecerli bir Word belgesi olmayabilir."
+                ) from exc
             if extracted:
                 return extracted
-            raise ValueError("DOCX içinden okunabilir metin çıkarılamadı")
+            raise ValueError("DOCX icinden okunabilir metin cikarilamadi")
         if suffix in {".txt", ".md"}:
             for encoding in ("utf-8", "utf-8-sig", "cp1254", "latin-1"):
                 try:
@@ -738,8 +756,8 @@ class ResumeService:
                         return extracted
                 except UnicodeDecodeError:
                     continue
-            raise ValueError("Metin dosyası çözümlenemedi")
-        raise ValueError("Desteklenmeyen dosya türü. PDF, DOCX veya TXT yükleyin.")
+            raise ValueError("Metin dosyasi cozumlenemedi")
+        raise ValueError("Desteklenmeyen dosya turu. PDF, DOCX veya TXT yukleyin.")
 
 
     @staticmethod
@@ -2763,7 +2781,9 @@ class ResumeService:
         base = Path(__file__).resolve().parents[3]
         for possible in (
             base / raw,
+            base / "frontend" / "public" / raw,
             base / "frontend" / "public" / "photos" / Path(raw).name,
+            base / "frontend" / "public" / "uploads" / "photos" / Path(raw).name,
             base / "assets" / "profile_photos" / Path(raw).name,
         ):
             if possible.is_file():
@@ -2774,9 +2794,12 @@ class ResumeService:
     @staticmethod
     def _resolve_studio_variant(photo_path: Path) -> str | None:
         base = Path(__file__).resolve().parents[3]
-        processed = base / "frontend" / "public" / "photos" / "processed" / f"{photo_path.stem}-studio.png"
-        if processed.is_file():
-            return str(processed)
+        for processed in (
+            base / "frontend" / "public" / "photos" / "processed" / f"{photo_path.stem}-ai-portrait.png",
+            base / "frontend" / "public" / "photos" / "processed" / f"{photo_path.stem}-studio.png",
+        ):
+            if processed.is_file():
+                return str(processed)
         return None
 
     @classmethod

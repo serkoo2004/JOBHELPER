@@ -405,7 +405,9 @@ class AiChatService:
     def analyze_resume(content: str, target_role: str | None = None) -> dict[str, Any]:
         intro = AiSkillManager.get_skill_intro('cv_analysis')
         user_request = (
-            "Task: CV analizi yap.\n"
+            "Task: CV analizi yap ve indirilebilir TXT raporu gibi düzenli, madde madde, uygulanabilir bir çıktı üret.\n"
+            "Cevapta genel konuşma yapma; doğrudan rapor üret.\n"
+            "Her zayıf nokta için nerede sorun olduğunu, neden problem olduğunu ve nasıl düzeltileceğini açıkça yaz.\n"
             f"CV Metni:\n{content}\n\n"
         )
         if target_role:

@@ -36,7 +36,14 @@ project-backup-2026-04-13.zip
 # Generated exports
 tmp_exports/
 
+# Local import/backup scratch folders
+_imported_frontend/
+frontend_backup_before_import/
+photo-*.webp
+
 # Uploaded/generated photo artifacts
 frontend/public/photos/*
 !frontend/public/photos/.gitkeep
 frontend/public/photos/processed/
+frontend/public/uploads/photos/*
+!frontend/public/uploads/photos/.gitkeep

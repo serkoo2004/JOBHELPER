@@ -24,6 +24,16 @@ def _get_list(name: str, default: list[str]) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _get_optional_secret(name: str) -> str | None:
+    value = os.getenv(name)
+    if not value:
+        return None
+    normalized = value.strip()
+    if not normalized or normalized.startswith("<") or normalized.lower() in {"none", "null", "changeme"}:
+        return None
+    return normalized
+
+
 def _normalize_database_url(value: str | None) -> str | None:
     if not value:
         return None
@@ -44,15 +54,20 @@ class Settings:
     allow_origins: list[str] = field(default_factory=lambda: _get_list("ALLOW_ORIGINS", ["*"]))
     allow_credentials: bool = field(default_factory=lambda: _get_bool("ALLOW_CREDENTIALS", False))
     database_url: str | None = field(default_factory=lambda: _normalize_database_url(os.getenv("DATABASE_URL")))
+    db_fallback_to_sqlite_on_error: bool = field(default_factory=lambda: _get_bool("DB_FALLBACK_TO_SQLITE_ON_ERROR", True))
     rate_limit_enabled: bool = field(default_factory=lambda: _get_bool("RATE_LIMIT_ENABLED", True))
     rate_limit_max_requests: int = field(default_factory=lambda: int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "120")))
     rate_limit_window_seconds: int = field(default_factory=lambda: int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60")))
-    admin_api_key: str | None = field(default_factory=lambda: os.getenv("ADMIN_API_KEY"))
+    admin_api_key: str | None = field(default_factory=lambda: _get_optional_secret("ADMIN_API_KEY"))
 
-    google_api_key: str | None = field(default_factory=lambda: os.getenv("GOOGLE_API_KEY"))
+    google_api_key: str | None = field(default_factory=lambda: _get_optional_secret("GOOGLE_API_KEY"))
     google_model: str = field(default_factory=lambda: os.getenv("GOOGLE_MODEL", "gemini-2.5-flash"))
-    openai_api_key: str | None = field(default_factory=lambda: os.getenv("OPENAI_API_KEY"))
+    google_image_model: str = field(default_factory=lambda: os.getenv("GOOGLE_IMAGE_MODEL", "gemini-2.5-flash-image"))
+    photo_provider: str = field(default_factory=lambda: os.getenv("PHOTO_PROVIDER", "google").strip().lower())
+    comfyui_url: str = field(default_factory=lambda: os.getenv("COMFYUI_URL", "http://127.0.0.1:8188").rstrip("/"))
+    openai_api_key: str | None = field(default_factory=lambda: _get_optional_secret("OPENAI_API_KEY"))
     openai_model: str = field(default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+    openai_image_model: str = field(default_factory=lambda: os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1"))
 
     google_client_id: str | None = field(default_factory=lambda: os.getenv("GOOGLE_CLIENT_ID"))
     google_client_secret: str | None = field(default_factory=lambda: os.getenv("GOOGLE_CLIENT_SECRET"))

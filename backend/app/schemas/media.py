@@ -14,6 +14,15 @@ class PhotoStudioRequest(BaseModel):
     style: Optional[str] = None
 
 
+class ProfilePhotoRequest(BaseModel):
+    profile_id: str
+    photo_path: str
+
+
+class PhotoDeleteRequest(BaseModel):
+    photo_path: str
+
+
 class PhotoStudioPlacement(BaseModel):
     template: str
     shape: str

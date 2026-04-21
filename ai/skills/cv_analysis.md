@@ -45,16 +45,28 @@ Always assess these dimensions:
 
 ## Expected output style
 
-Use a concise report structure:
+Return a structured audit report in Turkish using exactly these section headers:
 
-1. Short overall verdict
-2. Strong points
-3. Improvement areas
-4. Priority actions
+1. GENEL KARAR
+2. GÜÇLÜ YÖNLER
+3. HATALAR VE ZAYIF NOKTALAR
+4. NEREDE NEYİ DÜZELTMELİ
+5. ATS VE ANAHTAR KELİME RİSKLERİ
+6. ÖNCELİKLİ AKSİYON PLANI
 
-Recommendations must be concrete.
+Each section must use clear bullet points. For every issue, explain:
+
+- Nerede sorun var: hangi bölüm veya içerik türü.
+- Neden sorun: recruiter, ATS veya hedef rol açısından etkisi.
+- Nasıl düzeltilir: uygulanabilir düzenleme.
+- Örnek düzeltme: mümkünse kısa örnek ifade, ama başarı/metrik uydurma.
+
+The report should be detailed enough to be downloaded as a TXT audit document.
+Do not summarize into 2-3 generic sentences.
+Recommendations must be concrete and actionable.
+
 Bad example: "Experience could be stronger."
-Good example: "Replace duty-style bullets with action + result bullets and add at least one measurable impact per recent role."
+Good example: "Deneyim maddeleri görev listesi gibi duruyor. Her maddeyi 'aksiyon + araç/teknoloji + sonuç' yapısına çevir; örn. 'React ile X ekranını geliştirdim' yerine 'React ve TypeScript ile X ekranını geliştirerek kullanıcı akışını sadeleştirdim' yaz."
 
 ## Tone rules
 
